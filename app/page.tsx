@@ -1,5 +1,5 @@
-import { SecurityDashboard } from "@/components/SecurityDashboard";
+import ClientDashboard from "@/components/ClientDashboard";
 
 export default function Home() {
-  return <SecurityDashboard />;
+  return <ClientDashboard />;
 }
