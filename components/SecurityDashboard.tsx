@@ -30,7 +30,7 @@ export function SecurityDashboard() {
       <header className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2">
           <Camera size={20} className="text-cyan-400" />
-          <span className="font-bold text-base sm:text-lg">homesecurity</span>
+          <span className="font-bold text-base sm:text-lg">Your home security</span>
         </div>
         <button
           disabled={captures.length === 0}
