@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI-Thinker Guard Terminal",
+  title: "homesecurity",
   description: "Home security dashboard",
 };
 
