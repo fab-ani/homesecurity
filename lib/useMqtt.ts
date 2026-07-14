@@ -22,13 +22,12 @@ function loadFromStorage(): CapturedFrame[] {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return [];
     const arr: { id: string; dataUrl: string; time: string }[] = JSON.parse(raw);
-    return arr.map((item) => {
-      const base64 = item.dataUrl.split(",")[1] ?? "";
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      return { id: item.id, bytes, dataUrl: item.dataUrl, time: new Date(item.time) };
-    });
+    return arr.map((item) => ({
+      id: item.id,
+      bytes: new Uint8Array(0),
+      dataUrl: item.dataUrl,
+      time: new Date(item.time),
+    }));
   } catch {
     return [];
   }
@@ -65,9 +64,13 @@ export function useMqtt() {
   }, []);
 
   const onFrameReceived = useCallback((frame: Uint8Array) => {
-    const copy = new Uint8Array(frame).buffer as ArrayBuffer;
-    const blob = new Blob([copy], { type: "image/jpeg" });
-    const dataUrl = URL.createObjectURL(blob);
+    // Use base64 data URL so images persist in localStorage across sessions
+    let binary = "";
+    const chunk = 8192;
+    for (let i = 0; i < frame.length; i += chunk) {
+      binary += String.fromCharCode(...frame.subarray(i, i + chunk));
+    }
+    const dataUrl = `data:image/jpeg;base64,${btoa(binary)}`;
 
     const capture: CapturedFrame = {
       id: `${Date.now()}-${Math.random()}`,

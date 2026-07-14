@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Images, Camera, CameraOff } from "lucide-react";
+import { Images, Camera } from "lucide-react";
 import { useMqtt } from "@/lib/useMqtt";
 import { StatusChip } from "./StatusChip";
 import { GalleryModal } from "./GalleryModal";
@@ -136,15 +136,6 @@ export function SecurityDashboard() {
           </button>
         </div>
 
-        {/* Camera status icon row */}
-        <div className="flex items-center gap-2 text-xs text-gray-500 justify-center pb-1">
-          {isCameraOn ? (
-            <Camera size={14} className="text-cyan-400" />
-          ) : (
-            <CameraOff size={14} />
-          )}
-          <span>{isCameraOn ? "Camera active" : "Camera off"}</span>
-        </div>
       </main>
 
       {/* Gallery modal */}
