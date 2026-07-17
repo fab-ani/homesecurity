@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Images, Camera } from "lucide-react";
+import { useRef, useState } from "react";
+import { Images, Camera, Smartphone } from "lucide-react";
 import { useMqtt } from "@/lib/useMqtt";
 import { StatusChip } from "./StatusChip";
 import { GalleryModal } from "./GalleryModal";
@@ -18,9 +18,23 @@ export function SecurityDashboard() {
     deleteCapture,
     dismissAlert,
     retryConnect,
+    addPhoneCapture,
   } = useMqtt();
 
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      if (dataUrl) addPhoneCapture(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
   const isAlert = statusMessage.includes("ALERT");
   const lastCapture = captures.length > 0 ? captures[captures.length - 1] : null;
 
@@ -135,6 +149,23 @@ export function SecurityDashboard() {
             />
           </button>
         </div>
+
+        {/* Phone camera button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handlePhotoFile}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 active:bg-gray-600 transition-colors text-sm font-medium text-white border border-white/10"
+        >
+          <Smartphone size={17} className="text-cyan-400" />
+          Use Device Camera
+        </button>
 
       </main>
 

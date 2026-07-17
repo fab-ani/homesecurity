@@ -9,6 +9,7 @@ export interface CapturedFrame {
   bytes: Uint8Array;
   dataUrl: string;
   time: Date;
+  source: "esp32" | "phone";
 }
 
 const DEVICE = "hs-fab76";
@@ -21,12 +22,13 @@ function loadFromStorage(): CapturedFrame[] {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return [];
-    const arr: { id: string; dataUrl: string; time: string }[] = JSON.parse(raw);
+    const arr: { id: string; dataUrl: string; time: string; source?: "esp32" | "phone" }[] = JSON.parse(raw);
     return arr.map((item) => ({
       id: item.id,
       bytes: new Uint8Array(0),
       dataUrl: item.dataUrl,
       time: new Date(item.time),
+      source: item.source ?? "esp32",
     }));
   } catch {
     return [];
@@ -35,7 +37,12 @@ function loadFromStorage(): CapturedFrame[] {
 
 function saveToStorage(captures: CapturedFrame[]) {
   try {
-    const arr = captures.map((c) => ({ id: c.id, dataUrl: c.dataUrl, time: c.time.toISOString() }));
+    const arr = captures.map((c) => ({
+      id: c.id,
+      dataUrl: c.dataUrl,
+      time: c.time.toISOString(),
+      source: c.source,
+    }));
     localStorage.setItem(LS_KEY, JSON.stringify(arr));
   } catch {}
 }
@@ -52,10 +59,6 @@ export function useMqtt() {
   const assemblerRef = useRef(new ChunkAssembler());
   const hardwareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const capturesRef = useRef<CapturedFrame[]>([]);
-
-  // Keep ref in sync with state
-  useEffect(() => { capturesRef.current = captures; }, [captures]);
 
   const markHardwareOnline = useCallback(() => {
     setIsHardwareOnline(true);
@@ -63,12 +66,17 @@ export function useMqtt() {
     hardwareTimerRef.current = setTimeout(() => setIsHardwareOnline(false), HARDWARE_TIMEOUT_MS);
   }, []);
 
+  const showFrame = useCallback((dataUrl: string, frameTimerRefLocal: React.MutableRefObject<ReturnType<typeof setTimeout> | null>) => {
+    if (frameTimerRefLocal.current) clearTimeout(frameTimerRefLocal.current);
+    setCurrentFrame(dataUrl);
+    frameTimerRefLocal.current = setTimeout(() => setCurrentFrame(null), 4000);
+  }, []);
+
   const onFrameReceived = useCallback((frame: Uint8Array) => {
-    // Use base64 data URL so images persist in localStorage across sessions
     let binary = "";
-    const chunk = 8192;
-    for (let i = 0; i < frame.length; i += chunk) {
-      binary += String.fromCharCode(...frame.subarray(i, i + chunk));
+    const chunkSize = 8192;
+    for (let i = 0; i < frame.length; i += chunkSize) {
+      binary += String.fromCharCode(...frame.subarray(i, i + chunkSize));
     }
     const dataUrl = `data:image/jpeg;base64,${btoa(binary)}`;
 
@@ -77,6 +85,7 @@ export function useMqtt() {
       bytes: frame,
       dataUrl,
       time: new Date(),
+      source: "esp32",
     };
 
     setCaptures((prev) => {
@@ -85,10 +94,26 @@ export function useMqtt() {
       return next;
     });
 
-    if (frameTimerRef.current) clearTimeout(frameTimerRef.current);
-    setCurrentFrame(dataUrl);
-    frameTimerRef.current = setTimeout(() => setCurrentFrame(null), 4000);
-  }, []);
+    showFrame(dataUrl, frameTimerRef);
+  }, [showFrame]);
+
+  const addPhoneCapture = useCallback((dataUrl: string) => {
+    const capture: CapturedFrame = {
+      id: `${Date.now()}-${Math.random()}`,
+      bytes: new Uint8Array(0),
+      dataUrl,
+      time: new Date(),
+      source: "phone",
+    };
+
+    setCaptures((prev) => {
+      const next = [...prev, capture].slice(-MAX_CAPTURES);
+      saveToStorage(next);
+      return next;
+    });
+
+    showFrame(dataUrl, frameTimerRef);
+  }, [showFrame]);
 
   const connect = useCallback(() => {
     if (clientRef.current) {
@@ -144,7 +169,6 @@ export function useMqtt() {
     });
   }, [markHardwareOnline, onFrameReceived]);
 
-  // Load persisted captures + connect on mount
   useEffect(() => {
     const stored = loadFromStorage();
     setCaptures(stored);
@@ -178,9 +202,7 @@ export function useMqtt() {
     setCurrentFrame(null);
   }, []);
 
-  const retryConnect = useCallback(() => {
-    connect();
-  }, [connect]);
+  const retryConnect = useCallback(() => connect(), [connect]);
 
   return {
     isConnected,
@@ -193,5 +215,6 @@ export function useMqtt() {
     deleteCapture,
     dismissAlert,
     retryConnect,
+    addPhoneCapture,
   };
 }

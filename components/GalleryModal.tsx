@@ -86,6 +86,14 @@ export function GalleryModal({ captures, onDelete, onClose }: Props) {
                   className="max-w-full max-h-72 object-contain"
                   style={{ imageRendering: "pixelated" }}
                 />
+                {/* Source badge */}
+                <span className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  c.source === "phone"
+                    ? "bg-green-600/90 text-white"
+                    : "bg-cyan-700/90 text-white"
+                }`}>
+                  {c.source === "phone" ? "📱 Phone" : "📷 ESP32"}
+                </span>
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors">
                   <ZoomIn size={32} className="text-white opacity-0 hover:opacity-100 transition-opacity" />
                 </div>
@@ -145,6 +153,11 @@ export function GalleryModal({ captures, onDelete, onClose }: Props) {
             />
           </div>
           <div className="text-center py-3 px-4 shrink-0 flex flex-col gap-1">
+            <span className={`inline-block self-center text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 ${
+              fullscreen.source === "phone" ? "bg-green-600 text-white" : "bg-cyan-700 text-white"
+            }`}>
+              {fullscreen.source === "phone" ? "📱 Phone" : "📷 ESP32"}
+            </span>
             <span className="text-white/70 text-sm">{fmt(fullscreen.time)}</span>
             <div className="flex justify-center gap-3">
               <span className="text-gray-500 text-xs">{sizeKb(fullscreen)}</span>
