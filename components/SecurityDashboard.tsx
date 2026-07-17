@@ -27,13 +27,29 @@ export function SecurityDashboard() {
   function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      if (dataUrl) addPhoneCapture(dataUrl);
-    };
-    reader.readAsDataURL(file);
     e.target.value = "";
+
+    const blobUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+
+      // Resize to max 1024px on the longest side to keep memory low
+      const MAX = 1024;
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      addPhoneCapture(dataUrl);
+    };
+    img.src = blobUrl;
   }
   const isAlert = statusMessage.includes("ALERT");
   const lastCapture = captures.length > 0 ? captures[captures.length - 1] : null;
